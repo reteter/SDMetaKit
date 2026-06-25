@@ -91,8 +91,16 @@ batchCommand.SetHandler(async (folder, recursive, outFile, minLen) =>
 
     foreach (var f in files)
     {
-        var meta = await SdMetaKit.ParseFileAsync(f, opts);
-        results.Add(new { file = f, metadata = meta });
+        try
+        {
+            var meta = await SdMetaKit.ParseFileAsync(f, opts);
+            results.Add(new { file = f, metadata = meta });
+        }
+        catch (Exception ex)
+        {
+            results.Add(new { file = f, error = ex.Message });
+            Console.Error.WriteLine($"Błąd: {f} — {ex.Message}");
+        }
     }
 
     var json = JsonOutput.Serialize(results);
@@ -136,7 +144,10 @@ injectCommand.SetHandler(async (file, paramsText, fromFile) =>
 
     var png = await File.ReadAllBytesAsync(file.FullName);
     var result = SdMetaKit.InjectParametersText(png, text!);
-    await File.WriteAllBytesAsync(file.FullName, result);
+    // Atomic write: najpierw do pliku tymczasowego, potem rename
+    var tmpPath = file.FullName + ".tmp";
+    await File.WriteAllBytesAsync(tmpPath, result);
+    File.Move(tmpPath, file.FullName, overwrite: true);
     Console.WriteLine($"Zaktualizowano: {file.FullName}");
 },
 injectFileArg, injectParamsOpt, injectFromOpt);

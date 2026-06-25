@@ -153,4 +153,20 @@ public class A1111ParserTests
         result.CfgScale.Should().Be("7");
         result.Seed.Should().Be("42");
     }
+
+    [Fact]
+    public void Parse_LongInput_CompletesWithinReasonableTime()
+    {
+        // Długi prompt bez Negative prompt i bez Steps — regex nie znajduje dopasowania,
+        // ale nie powinien też wykonać katastrofalnego backtrackingu.
+        var longLine = new string('x', 1000);
+        var longInput = string.Join('\n', Enumerable.Repeat(longLine, 1000));
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var result = _parser.Parse(longInput);
+        sw.Stop();
+
+        result.Prompt.Should().Be(longInput.Trim());
+        sw.ElapsedMilliseconds.Should().BeLessThan(5000);
+    }
 }

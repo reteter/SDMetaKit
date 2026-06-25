@@ -8,6 +8,14 @@ namespace SDMetaKit;
 /// </summary>
 public sealed class A1111Parser : IMetadataParser
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
+    private static readonly Regex NegativePromptRegex = new(
+        @"(?m)^Negative prompt:\s*", RegexOptions.Multiline | RegexOptions.Compiled, RegexTimeout);
+
+    private static readonly Regex StepsRegex = new(
+        @"(?m)^Steps:", RegexOptions.Multiline | RegexOptions.Compiled, RegexTimeout);
+
     private static readonly HashSet<string> KnownPriorityKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "Steps", "Sampler", "Schedule type", "CFG scale", "Distilled CFG Scale",
@@ -20,10 +28,10 @@ public sealed class A1111Parser : IMetadataParser
         if (string.IsNullOrWhiteSpace(parametersText))
             return new SdMetadata { SourceKind = "Text", RawText = parametersText };
 
-        var negMatch = Regex.Match(parametersText, @"(?m)^Negative prompt:\s*", RegexOptions.Multiline);
+        var negMatch = NegativePromptRegex.Match(parametersText);
 
         var searchFrom = negMatch.Success ? negMatch.Index + negMatch.Length : 0;
-        var stepsMatch = Regex.Match(parametersText[searchFrom..], @"(?m)^Steps:", RegexOptions.Multiline);
+        var stepsMatch = StepsRegex.Match(parametersText[searchFrom..]);
         var stepsIndex = stepsMatch.Success ? searchFrom + stepsMatch.Index : -1;
 
         int promptEnd, negEnd, paramsStart;

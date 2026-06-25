@@ -1,4 +1,6 @@
 using SDMetaKit;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,8 +9,35 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "SDMetaKit API", Version = "v1" });
 });
+builder.Services.AddProblemDetails();
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.ValueLengthLimit = 50_000_000;
+    o.MultipartBodyLengthLimit = 50_000_000;
+});
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        var feature = context.Features.Get<IExceptionHandlerFeature>();
+        if (feature?.Error is not null)
+        {
+            var error = new
+            {
+                error = "internal_error",
+                message = app.Environment.IsDevelopment()
+                    ? feature.Error.Message
+                    : "Wewnętrzny błąd serwera."
+            };
+            await context.Response.WriteAsJsonAsync(error);
+        }
+    });
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -26,6 +55,9 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0.0" })
 
 app.MapPost("/v1/parse", async (IFormFile file, int? min_length) =>
 {
+    var validationError = ValidateImageFile(file);
+    if (validationError is not null) return validationError;
+
     var opts = new ExtractionOptions { MinimumTextLength = min_length ?? 150 };
 
     using var stream = file.OpenReadStream();
@@ -64,6 +96,9 @@ app.MapPost("/v1/parse/text", (ParseTextRequest req) =>
 
 app.MapPost("/v1/inject", async (IFormFile file, IFormFile? parameters_file, string? parameters_text) =>
 {
+    var validationError = ValidateImageFile(file);
+    if (validationError is not null) return validationError;
+
     string? text = parameters_text;
 
     if (text is null && parameters_file is not null)
@@ -104,6 +139,9 @@ app.MapPost("/v1/blob/decode", (BlobRequest req) =>
 
 app.MapPost("/v1/blob/from-file", async (IFormFile file) =>
 {
+    var validationError = ValidateImageFile(file);
+    if (validationError is not null) return validationError;
+
     using var stream = file.OpenReadStream();
     var raw = await SdMetaKit.CreateExtractor().ExtractAsync(stream);
 
@@ -125,7 +163,7 @@ app.MapPost("/v1/blob/from-file", async (IFormFile file) =>
 app.MapPost("/v1/blob/from-text", (ParseTextRequest req) =>
 {
     if (string.IsNullOrWhiteSpace(req.Text))
-        return Results.BadRequest(new { error = "empty_text" });
+        return Results.BadRequest(new { error = "empty_text", message = "Pole text jest puste." });
 
     var meta = SdMetaKit.Parse(req.Text);
     return Results.Ok(new { blob = SdMetaKit.EncodeBlob(meta) });
@@ -134,6 +172,18 @@ app.MapPost("/v1/blob/from-text", (ParseTextRequest req) =>
 .WithTags("Blob");
 
 app.Run();
+
+// ── Helpers ────────────────────────────────────────────────────────────
+
+static IResult? ValidateImageFile(IFormFile file)
+{
+    var allowed = new[] { "image/png", "image/jpeg" };
+    if (file is null || file.Length == 0)
+        return Results.BadRequest(new { error = "empty_file", message = "Plik jest pusty." });
+    if (!allowed.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "invalid_content_type", message = "Akceptowane tylko image/png i image/jpeg." });
+    return null;
+}
 
 // ── Modele żądań ───────────────────────────────────────────────────────
 
