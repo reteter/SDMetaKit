@@ -55,7 +55,10 @@ app.UseExceptionHandler(errorApp =>
 });
 
 app.UseRateLimiter();
-app.UsePathBase("/sdmk");
+
+var pathBase = app.Configuration["PathBase"];
+if (!string.IsNullOrWhiteSpace(pathBase))
+    app.UsePathBase(pathBase);
 
 if (app.Environment.IsDevelopment())
 {
