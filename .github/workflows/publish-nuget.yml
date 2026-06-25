@@ -1,0 +1,61 @@
+# Publikuje SDMetaKit.Core na nuget.org przez Trusted Publishing (OIDC).
+#
+# Jednorazowa konfiguracja na https://www.nuget.org → Trusted Publishing:
+#   Package owner (nuget.org username): arkoniel
+#   Repository Owner: reteter
+#   Repository:       SDMetaKit
+#   Workflow File:    publish-nuget.yml
+#
+# Uruchomienie: push tagu v* (np. v1.0.0) lub workflow_dispatch.
+
+name: Publish NuGet
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set package version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "PACKAGE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            VERSION=$(grep -oP '(?<=<Version>)[^<]+' src/SDMetaKit.Core/SDMetaKit.Core.csproj | head -1)
+            echo "PACKAGE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          fi
+
+      - name: Test
+        run: dotnet test SDMetaKit.slnx -c Release --verbosity normal
+
+      - name: Pack
+        run: dotnet pack src/SDMetaKit.Core/SDMetaKit.Core.csproj -c Release -p:Version="$PACKAGE_VERSION" -o artifacts
+
+      - name: NuGet login (OIDC)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: arkoniel
+
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
