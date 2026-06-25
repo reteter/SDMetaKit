@@ -61,11 +61,15 @@ jobs:
           dotnet pack src/SDMetaKit.Cli/SDMetaKit.Cli.csproj -c Release -p:Version="$CLI_VERSION" -o artifacts
 
       - name: Sign package
-        if: ${{ secrets.NUGET_SIGN_CERT_BASE64 != '' }}
         env:
+          NUGET_SIGN_CERT_BASE64: ${{ secrets.NUGET_SIGN_CERT_BASE64 }}
           CERT_PASSWORD: ${{ secrets.NUGET_SIGN_CERT_PASSWORD }}
         run: |
-          echo "${{ secrets.NUGET_SIGN_CERT_BASE64 }}" | base64 -d > /tmp/sign-cert.pfx
+          if [ -z "$NUGET_SIGN_CERT_BASE64" ]; then
+            echo "Signing skipped — NUGET_SIGN_CERT_BASE64 not configured"
+            exit 0
+          fi
+          echo "$NUGET_SIGN_CERT_BASE64" | base64 -d > /tmp/sign-cert.pfx
           dotnet nuget sign artifacts/*.nupkg \
             --certificate-path /tmp/sign-cert.pfx \
             --certificate-password "$CERT_PASSWORD" \
