@@ -9,7 +9,40 @@ LOG_FILE="$CONFIG_DIR/tunnel.log"
 PID_FILE="$CONFIG_DIR/tunnel.pid"
 LOCK_FILE="$CONFIG_DIR/tunnel.lock"
 
+# Repo do przechowywania aktualnego URL tunelu
+# Ustaw TUNNEL_URL_REPO na ścieżkę lokalnego klona
+TUNNEL_URL_REPO="${TUNNEL_URL_REPO:-}"
+TUNNEL_URL_FILE_NAME="${TUNNEL_URL_FILE_NAME:-tunnel-url.txt}"
+
 # ── Funkcje ───────────────────────────────────────────────────────────────
+
+commit_url() {
+    [[ -z "$TUNNEL_URL_REPO" ]] && return 0
+    [[ ! -f "$URL_FILE" ]] && return 0
+
+    local url
+    url=$(cat "$URL_FILE")
+    [[ -z "$url" ]] && return 0
+
+    local target="$TUNNEL_URL_REPO/$TUNNEL_URL_FILE_NAME"
+
+    # Jeśli plik się nie zmienił, nie commituj
+    if [[ -f "$target" ]] && [[ "$(cat "$target")" == "$url" ]]; then
+        return 0
+    fi
+
+    echo "$url" > "$target"
+
+    cd "$TUNNEL_URL_REPO"
+    git add "$TUNNEL_URL_FILE_NAME"
+    if git diff --cached --quiet; then
+        return 0
+    fi
+
+    git commit -m "update tunnel url: $url"
+    git push 2>/dev/null || echo "[$(date +%T)] git push failed — repo not reachable?"
+    cd - >/dev/null
+}
 
 start_tunnel() {
     mkdir -p "$CONFIG_DIR"
@@ -27,6 +60,7 @@ start_tunnel() {
             url="${BASH_REMATCH[0]}"
             echo "$url" > "$URL_FILE"
             echo "[$(date +%T)] Tunnel URL: $url (saved to $URL_FILE)"
+            commit_url
         fi
       done &
 
@@ -70,9 +104,10 @@ case "${1:-start}" in
             show_url
             exit 1
         fi
+        mkdir -p "$CONFIG_DIR"
         touch "$LOCK_FILE"
 
-        # Watchdog - restartuje gdy padnie
+        # Watchdog — restartuje gdy padnie
         while true; do
             start_tunnel
             wait $TUNNEL_PID 2>/dev/null || true
