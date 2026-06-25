@@ -24,3 +24,4 @@ project.nuget.cache
 dev/
 .claude
 .agents
+.artefacts/
