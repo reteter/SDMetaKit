@@ -7,6 +7,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>sdmk</AssemblyName>
     <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>sdmk</ToolCommandName>
+    <PackageId>SDMetaKit.Cli</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>reteter</Authors>
+    <Description>CLI tool (sdmk) for parsing and writing Stable Diffusion image metadata.</Description>
+    <PackageTags>stable-diffusion;metadata;cli;dotnet-tool;a1111</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/reteter/SDMetaKit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/reteter/SDMetaKit.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>

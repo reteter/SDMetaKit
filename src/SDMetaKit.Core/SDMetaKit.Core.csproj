@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
     <PackageId>SDMetaKit.Core</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>reteter</Authors>
     <Description>Parse and write Stable Diffusion image metadata (A1111/Forge format). Supports PNG tEXt chunks and JPEG EXIF UserComment.</Description>
     <PackageTags>stable-diffusion;metadata;exif;png;a1111;forge</PackageTags>

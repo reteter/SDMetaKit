@@ -1,4 +1,4 @@
-# Publikuje SDMetaKit.Core na nuget.org przez Trusted Publishing (OIDC).
+# Publikuje SDMetaKit.Core i SDMetaKit.Cli na nuget.org przez Trusted Publishing (OIDC).
 #
 # Jednorazowa konfiguracja na https://www.nuget.org → Trusted Publishing:
 #   Package owner (nuget.org username): arkoniel
@@ -52,8 +52,13 @@ jobs:
       - name: Test
         run: dotnet test SDMetaKit.slnx -c Release --verbosity normal
 
-      - name: Pack
+      - name: Pack Core
         run: dotnet pack src/SDMetaKit.Core/SDMetaKit.Core.csproj -c Release -p:Version="$PACKAGE_VERSION" -o artifacts
+
+      - name: Pack CLI
+        run: |
+          CLI_VERSION=$(grep -oP '(?<=<Version>)[^<]+' src/SDMetaKit.Cli/SDMetaKit.Cli.csproj | head -1)
+          dotnet pack src/SDMetaKit.Cli/SDMetaKit.Cli.csproj -c Release -p:Version="$CLI_VERSION" -o artifacts
 
       - name: Sign package
         if: ${{ secrets.NUGET_SIGN_CERT_BASE64 != '' }}
