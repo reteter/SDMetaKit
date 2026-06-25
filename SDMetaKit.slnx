@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SDMetaKit.Api/SDMetaKit.Api.csproj" />
+    <Project Path="src/SDMetaKit.Cli/SDMetaKit.Cli.csproj" />
+    <Project Path="src/SDMetaKit.Core/SDMetaKit.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SDMetaKit.Api.Tests/SDMetaKit.Api.Tests.csproj" />
+    <Project Path="tests/SDMetaKit.Core.Tests/SDMetaKit.Core.Tests.csproj" />
+  </Folder>
+</Solution>
