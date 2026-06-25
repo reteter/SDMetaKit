@@ -1,5 +1,7 @@
 # SDMetaKit.Core
 
+[![NuGet](https://img.shields.io/nuget/v/SDMetaKit.Core)](https://nuget.org/packages/SDMetaKit.Core)
+
 Parse and write **Stable Diffusion** image metadata in the A1111/Automatic1111 and Forge text format.
 
 Supports PNG `tEXt` chunks (`parameters` keyword) and JPEG EXIF (`UserComment`, `ImageDescription`).
