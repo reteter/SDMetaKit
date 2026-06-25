@@ -1,6 +1,7 @@
 using SDMetaKit;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,20 @@ builder.Services.Configure<FormOptions>(o =>
 {
     o.ValueLengthLimit = 50_000_000;
     o.MultipartBodyLengthLimit = 50_000_000;
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("Api", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
 });
 
 var app = builder.Build();
@@ -38,6 +53,8 @@ app.UseExceptionHandler(errorApp =>
         }
     });
 });
+
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

@@ -32,18 +32,22 @@ public sealed class FileMetadataExtractor : IMetadataExtractor
         var opts = options ?? ExtractionOptions.Default;
         byte[] bytes;
 
-        if (imageStream.CanSeek)
+        if (imageStream is MemoryStream ms)
+        {
+            bytes = ms.ToArray();
+        }
+        else if (imageStream.CanSeek)
         {
             imageStream.Position = 0;
-            using var ms = new MemoryStream();
-            await imageStream.CopyToAsync(ms, ct);
-            bytes = ms.ToArray();
+            using var copy = new MemoryStream();
+            await imageStream.CopyToAsync(copy, ct);
+            bytes = copy.ToArray();
         }
         else
         {
-            using var ms = new MemoryStream();
-            await imageStream.CopyToAsync(ms, ct);
-            bytes = ms.ToArray();
+            using var copy = new MemoryStream();
+            await imageStream.CopyToAsync(copy, ct);
+            bytes = copy.ToArray();
         }
 
         string? sha256 = null;
