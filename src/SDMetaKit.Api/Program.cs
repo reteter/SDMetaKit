@@ -55,6 +55,7 @@ app.UseExceptionHandler(errorApp =>
 });
 
 app.UseRateLimiter();
+app.UsePathBase("/sdmk");
 
 if (app.Environment.IsDevelopment())
 {
