@@ -7,6 +7,14 @@
 #   Workflow File:    publish-nuget.yml
 #
 # Uruchomienie: push tagu v* (np. v1.0.0) lub workflow_dispatch.
+#
+# Podpisywanie pakietów (wymagane gdy na nuget.org masz zarejestrowany certyfikat):
+#   GitHub → Settings → Secrets → Actions:
+#     NUGET_SIGN_CERT_BASE64  — plik .pfx zakodowany base64
+#     NUGET_SIGN_CERT_PASSWORD — hasło do .pfx
+#   Certyfikat .cer (publiczny) musi być zarejestrowany na nuget.org → Certificates.
+#
+# Alternatywa bez podpisywania: usuń wszystkie certyfikaty z nuget.org → Account settings → Certificates.
 
 name: Publish NuGet
 
@@ -25,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
@@ -46,6 +54,19 @@ jobs:
 
       - name: Pack
         run: dotnet pack src/SDMetaKit.Core/SDMetaKit.Core.csproj -c Release -p:Version="$PACKAGE_VERSION" -o artifacts
+
+      - name: Sign package
+        if: ${{ secrets.NUGET_SIGN_CERT_BASE64 != '' }}
+        env:
+          CERT_PASSWORD: ${{ secrets.NUGET_SIGN_CERT_PASSWORD }}
+        run: |
+          echo "${{ secrets.NUGET_SIGN_CERT_BASE64 }}" | base64 -d > /tmp/sign-cert.pfx
+          dotnet nuget sign artifacts/*.nupkg \
+            --certificate-path /tmp/sign-cert.pfx \
+            --certificate-password "$CERT_PASSWORD" \
+            --timestamper http://timestamp.digicert.com \
+            --overwrite
+          rm -f /tmp/sign-cert.pfx
 
       - name: NuGet login (OIDC)
         uses: NuGet/login@v1

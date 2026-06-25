@@ -21,7 +21,10 @@ public sealed class A1111Parser : IMetadataParser
             return new SdMetadata { SourceKind = "Text", RawText = parametersText };
 
         var negMatch = Regex.Match(parametersText, @"(?m)^Negative prompt:\s*", RegexOptions.Multiline);
-        var stepsMatch = Regex.Match(parametersText, @"(?m)^Steps:", RegexOptions.Multiline);
+
+        var searchFrom = negMatch.Success ? negMatch.Index + negMatch.Length : 0;
+        var stepsMatch = Regex.Match(parametersText[searchFrom..], @"(?m)^Steps:", RegexOptions.Multiline);
+        var stepsIndex = stepsMatch.Success ? searchFrom + stepsMatch.Index : -1;
 
         int promptEnd, negEnd, paramsStart;
 
@@ -29,13 +32,13 @@ public sealed class A1111Parser : IMetadataParser
         {
             promptEnd = negMatch.Index;
             negEnd = negMatch.Index + negMatch.Length;
-            paramsStart = stepsMatch.Success ? stepsMatch.Index : -1;
+            paramsStart = stepsIndex;
         }
-        else if (stepsMatch.Success)
+        else if (stepsIndex >= 0)
         {
-            promptEnd = stepsMatch.Index;
+            promptEnd = stepsIndex;
             negEnd = -1;
-            paramsStart = stepsMatch.Index;
+            paramsStart = stepsIndex;
         }
         else
         {
@@ -117,7 +120,9 @@ public sealed class A1111Parser : IMetadataParser
             int keyStart = i;
             while (i < len && input[i] != ':' && input[i] != '\n')
                 i++;
-            if (i >= len || input[i] != ':') break;
+
+            if (i >= len) break;
+            if (input[i] == '\n') { i++; continue; }
 
             string key = input[keyStart..i].Trim();
             i++;

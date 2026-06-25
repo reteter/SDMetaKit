@@ -115,4 +115,22 @@ public class A1111ParserTests
         var result = _parser.Parse(FullSample);
         result.SourceKind.Should().Be("Text");
     }
+
+    [Fact]
+    public void Parse_StepsInPositivePrompt_DoesNotConfuseParser()
+    {
+        const string input =
+            "painting with\nSteps: 1, 2, 3\n" +
+            "Negative prompt: ugly, blurry\n" +
+            "Steps: 20, Sampler: Euler, CFG scale: 7, Seed: 42";
+
+        var result = _parser.Parse(input);
+
+        result.Prompt.Should().Be("painting with\nSteps: 1, 2, 3");
+        result.NegativePrompt.Should().Be("ugly, blurry");
+        result.Steps.Should().Be("20");
+        result.Sampler.Should().Be("Euler");
+        result.CfgScale.Should().Be("7");
+        result.Seed.Should().Be("42");
+    }
 }

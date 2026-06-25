@@ -65,6 +65,7 @@ public sealed class PngChunkWriter : IPngWriter
         while (pos + 8 <= png.Length)
         {
             var length = ReadUInt32BE(png, pos);
+            if (length > int.MaxValue - 12) return -1;
             var type = Encoding.ASCII.GetString(png, pos + 4, 4);
             if (type == "IEND") return pos;
             pos += 8 + (int)length + 4;

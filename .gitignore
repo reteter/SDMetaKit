@@ -11,14 +11,33 @@ obj/
 
 # NuGet
 *.nupkg
+*.snupkg
+nupkg/
+artifacts/
 packages/
 project.lock.json
 project.nuget.cache
+
+# Test output
+TestResults/
+*.trx
+coverage/
+*.opencover.xml
 
 # Logs & temp
 *.log
 *.tmp
 *.cache
+
+# IDE
+.idea/
+*.DotSettings.user
+
+# Secrets / signing (nigdy do repo)
+*.pfx
+*.p12
+*.cer
+secrets.json
 
 # Dev / scratch
 dev/

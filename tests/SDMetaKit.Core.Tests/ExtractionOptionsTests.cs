@@ -46,4 +46,14 @@ public class ParseKeyValueTests
         A1111Parser.ParseKeyValue("").Should().BeEmpty();
         A1111Parser.ParseKeyValue("   ").Should().BeEmpty();
     }
+
+    [Fact]
+    public void ParseKeyValue_SkipsLineWithoutColon_ContinuesParsing()
+    {
+        var result = A1111Parser.ParseKeyValue("Steps: 20\nWildcard prompt\nCFG scale: 7, Seed: 42");
+
+        result["Steps"].Should().Be("20");
+        result["CFG scale"].Should().Be("7");
+        result["Seed"].Should().Be("42");
+    }
 }
