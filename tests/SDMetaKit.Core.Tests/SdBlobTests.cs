@@ -1,3 +1,5 @@
+using System.IO.Compression;
+
 namespace SDMetaKit.Core.Tests;
 
 public class SdBlobTests
@@ -87,5 +89,73 @@ public class SdBlobTests
         result.Should().BeTrue();
         meta.Should().NotBeNull();
         meta!.Prompt.Should().Be("a beautiful cat");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TryDecode_NullOrWhiteSpace_ReturnsFalse(string? blob)
+    {
+        var result = SdMetaKit.TryDecodeBlob(blob!, out var meta);
+        result.Should().BeFalse();
+        meta.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryDecode_UnknownPrefix_ReturnsFalse()
+    {
+        var result = SdMetaKit.TryDecodeBlob("SDMK2:abc123", out var meta);
+        result.Should().BeFalse();
+        meta.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryDecode_InvalidBase64_ReturnsFalse()
+    {
+        var result = SdMetaKit.TryDecodeBlob("SDMK1:!!!notbase64!!!", out var meta);
+        result.Should().BeFalse();
+        meta.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryDecode_InvalidDeflate_ReturnsFalse()
+    {
+        var blob = CreateBlobWithInvalidDeflate();
+        var result = SdMetaKit.TryDecodeBlob(blob, out var meta);
+        result.Should().BeFalse();
+        meta.Should().BeNull();
+    }
+
+    [Fact]
+    public void TryDecode_InvalidJson_ReturnsFalse()
+    {
+        var blob = CreateBlobWithInvalidJson();
+        var result = SdMetaKit.TryDecodeBlob(blob, out var meta);
+        result.Should().BeFalse();
+        meta.Should().BeNull();
+    }
+
+    [Fact]
+    public void Decode_Whitespace_ThrowsArgumentException()
+    {
+        Action act = () => SdMetaKit.DecodeBlob("   ");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    private static string CreateBlobWithInvalidDeflate()
+    {
+        var junk = Convert.ToBase64String(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 })
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        return "SDMK1:" + junk;
+    }
+
+    private static string CreateBlobWithInvalidJson()
+    {
+        using var ms = new MemoryStream();
+        using (var deflate = new DeflateStream(ms, CompressionLevel.Fastest))
+            deflate.Write("not json"u8);
+        return "SDMK1:" + Convert.ToBase64String(ms.ToArray())
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
 }

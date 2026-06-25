@@ -117,6 +117,26 @@ public class A1111ParserTests
     }
 
     [Fact]
+    public void Parse_LineWithoutColonInParamsBlock_DoesNotDropSubsequentParams()
+    {
+        // Forge i pluginy (np. ADetailer) mogą emitować linie bez ':' między parametrami
+        const string input =
+            "a cat\n" +
+            "Negative prompt: ugly\n" +
+            "Steps: 20, Sampler: Euler\n" +
+            "Wildcard prompt\n" +
+            "CFG scale: 7, Seed: 42, Model: v1-5-pruned";
+
+        var result = _parser.Parse(input);
+
+        result.Steps.Should().Be("20");
+        result.Sampler.Should().Be("Euler");
+        result.CfgScale.Should().Be("7");
+        result.Seed.Should().Be("42");
+        result.Model.Should().Be("v1-5-pruned");
+    }
+
+    [Fact]
     public void Parse_StepsInPositivePrompt_DoesNotConfuseParser()
     {
         const string input =
